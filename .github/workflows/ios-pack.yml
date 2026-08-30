@@ -1,0 +1,88 @@
+name: Build iOS (Unsigned IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios-adaptation
+
+jobs:
+  iOS:
+    name: iOS
+    runs-on: macos-15
+    timeout-minutes: 150
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v4
+
+      # RN 0.73 officially supports Xcode 15, which is no longer available on hosted runners.
+      # Xcode 16.3+ (clang 17) breaks RCT-Folly/boost of RN 0.73, so prefer 16.2.
+      - name: Select Xcode
+        run: |
+          XCODE=''
+          for v in 16.2 16.1 16.0; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              XCODE="/Applications/Xcode_${v}.app"
+              break
+            fi
+          done
+          if [ -n "$XCODE" ]; then
+            sudo xcode-select -s "$XCODE"
+          else
+            echo '::warning::Xcode 16.0-16.2 not found on runner, using image default'
+          fi
+          xcodebuild -version
+
+      - name: Setup Env
+        uses: ./.github/actions/setup
+
+      - name: Get package version
+        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install Pods
+        env:
+          # react-native-flipper is no longer in dependencies and fails to build
+          # on recent Xcode, so always disable it
+          NO_FLIPPER: '1'
+        run: |
+          bundle config set --local path vendor/bundle
+          bundle install
+          bundle exec pod install --project-directory=ios
+
+      - name: Build unsigned app
+        run: |
+          cd ios
+          xcodebuild \
+            -workspace LxMusicMobile.xcworkspace \
+            -scheme LxMusicMobile \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package unsigned IPA
+        run: |
+          cd ios/build/Build/Products/Release-iphoneos
+          mkdir Payload
+          cp -R LxMusicMobile.app Payload/
+          ditto -c -k --keepParent Payload "${GITHUB_WORKSPACE}/lx-music-mobile-v${PACKAGE_VERSION}-ios-unsigned.ipa"
+          cd "${GITHUB_WORKSPACE}"
+          rm -rf ios/build/Build/Products/Release-iphoneos/Payload
+          md5sum lx-music-mobile-v${PACKAGE_VERSION}-ios-unsigned.ipa
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-v${{ env.PACKAGE_VERSION }}-ios-unsigned
+          path: lx-music-mobile-v${{ env.PACKAGE_VERSION }}-ios-unsigned.ipa
+          if-no-files-found: error
