@@ -93,6 +93,9 @@ const DrawerLayoutFixed = forwardRef<DrawerLayoutFixedType, Props>(({ visibleNav
             right: 0,
             bottom: 0,
             left: 0,
+            // 关闭状态下抽屉面板是靠 translateX 移到左侧屏幕外的，而 iOS 的 View 默认不裁剪子视图，
+            // 面板会溢出到相邻的 PagerView 页面上（排行榜的榜单列表盖住歌单页等）。必须在这里裁掉。
+            overflow: 'hidden',
           }}
         >
           <TouchableWithoutFeedback onPress={() => { setIosDrawerVisible(false) }}>
