@@ -22,8 +22,26 @@ export const removeOfflineItem = (id: string) => {
   event.offline_changed(id)
 }
 
+export const removeOfflineItems = (ids: string[]) => {
+  let changed = false
+  for (const id of ids) {
+    if (!(id in state.list)) continue
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete state.list[id]
+    changed = true
+  }
+  if (changed) event.offline_changed('')
+}
+
+export const startTask = (id: string, musicInfo: LX.Music.MusicInfoOnline) => {
+  state.tasks.set(id, { progress: 0, musicInfo })
+  event.offline_changed(id)
+}
+
 export const setTaskProgress = (id: string, progress: number) => {
-  state.tasks.set(id, progress)
+  const task = state.tasks.get(id)
+  if (!task) return
+  task.progress = progress
   event.offline_changed(id)
 }
 
@@ -32,10 +50,13 @@ export const removeTask = (id: string) => {
   event.offline_changed(id)
 }
 
+/** 正在下载的任务，按加入顺序（Map 保序） */
+export const getTasks = () => [...state.tasks.values()]
+
 export const getStatus = (id: string): LX.Offline.Status => {
   if (state.list[id]) return 'downloaded'
   if (state.tasks.has(id)) return 'downloading'
   return 'none'
 }
 
-export const getProgress = (id: string) => state.tasks.get(id) ?? 0
+export const getProgress = (id: string) => state.tasks.get(id)?.progress ?? 0

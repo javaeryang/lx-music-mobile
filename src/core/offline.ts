@@ -6,6 +6,7 @@ import {
   moveFile,
   privateStorageDirectoryPath,
   readFile,
+  stat,
   unlink,
   writeFile,
 } from '@/utils/fs'
@@ -53,7 +54,31 @@ const getQualityCandidates = (musicInfo: LX.Music.MusicInfoOnline): LX.Quality[]
 }
 
 export const init = async() => {
-  action.setOfflineList(await getOfflineList())
+  const list = await getOfflineList()
+  // 早期版本的索引没有 musicInfo，渲染与播放都靠它，缺了就只能丢弃
+  for (const [id, info] of Object.entries(list)) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    if (!info?.musicInfo?.id) delete list[id]
+  }
+  action.setOfflineList(list)
+}
+
+/** 已下载条目，按下载时间倒序。列表渲染与播放解析共用这一个排序来源 */
+export const getOfflineItems = (): LX.Offline.ItemInfo[] => {
+  return Object.values(state.list).sort((a, b) => b.addTime - a.addTime)
+}
+
+/** 已下载歌曲，顺序与 getOfflineItems 一致 */
+export const getOfflineMusicList = (): LX.Music.MusicInfoOnline[] => {
+  return getOfflineItems().map(info => info.musicInfo)
+}
+
+export const getOfflineStats = (): LX.Offline.Stats => {
+  const list = Object.values(state.list)
+  return {
+    count: list.length,
+    size: list.reduce((total, info) => total + (info.size || 0), 0),
+  }
 }
 
 /** 已下载则返回音频绝对路径（无 file:// 前缀），否则 null */
@@ -90,6 +115,19 @@ export const removeOffline = async(id: string) => {
   ])
 }
 
+export const removeOfflineMulti = async(ids: string[]) => {
+  const infos = ids.map(id => ({ id, info: action.getOfflineItem(id) }))
+  action.removeOfflineItems(ids)
+  persist()
+  await Promise.all(infos.flatMap(({ id, info }) => {
+    if (!info) return []
+    return [
+      unlink(getAudioPath(id, info.ext)).catch(() => {}),
+      ...info.hasLyric ? [unlink(getLyricPath(id)).catch(() => {})] : [],
+    ]
+  }))
+}
+
 const resolveUrl = async(musicInfo: LX.Music.MusicInfoOnline) => {
   for (const quality of getQualityCandidates(musicInfo)) {
     const url = await getOnlineMusicUrl({ musicInfo, quality, isRefresh: true }).catch(() => '')
@@ -116,7 +154,7 @@ export const downloadMusic = async(musicInfo: LX.Music.MusicInfoOnline) => {
   const id = musicInfo.id
   if (action.getStatus(id) != 'none') return
 
-  action.setTaskProgress(id, 0)
+  action.startTask(id, musicInfo)
   let tempPath = ''
   try {
     const resolved = await resolveUrl(musicInfo)
@@ -147,8 +185,16 @@ export const downloadMusic = async(musicInfo: LX.Music.MusicInfoOnline) => {
     tempPath = ''
 
     const hasLyric = await saveOfflineLyric(musicInfo).catch(() => false)
+    const size = await stat(targetPath).then(info => Number(info.size) || 0).catch(() => 0)
 
-    action.addOfflineItem(id, { ext, quality: resolved.quality, hasLyric })
+    action.addOfflineItem(id, {
+      ext,
+      quality: resolved.quality,
+      hasLyric,
+      size,
+      addTime: Date.now(),
+      musicInfo,
+    })
     persist()
   } catch (err: any) {
     log.error(err)
