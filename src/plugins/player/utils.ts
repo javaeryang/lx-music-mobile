@@ -9,7 +9,7 @@ import { toast } from '@/utils/tools'
 
 export { useBufferProgress } from './hook'
 export { getDuration, getPosition } from './time'
-export { updateNowPlayingTitles } from './nowPlaying'
+export { updateNowPlayingTitles, type NowPlayingTitles } from './nowPlaying'
 
 const emptyIdRxp = /\/\/default$/
 const tempIdRxp = /\/\/default$|\/\/default\/\/restorePlay$/
@@ -173,16 +173,6 @@ export const setPause = async() => TrackPlayer.pause()
 export const setCurrentTime = async(time: number) => TrackPlayer.seekTo(time)
 export const setVolume = async(num: number) => TrackPlayer.setVolume(num)
 export const setPlaybackRate = async(num: number) => TrackPlayer.setRate(num)
-export interface NowPlayingTitles {
-  title?: string
-  artist?: string
-  album?: string
-  lyric?: string
-}
-export const updateNowPlayingTitles = async(titles: NowPlayingTitles) => {
-  console.log('set playing titles', titles)
-  return TrackPlayer.updateNowPlayingTitles(titles)
-}
 
 export const resetPlay = async() => Promise.all([setPause(), setCurrentTime(0)])
 

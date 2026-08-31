@@ -10,6 +10,7 @@ const CryptoModule = NativeModules.CryptoModule as undefined | {
   aesDecrypt: (text: string, key: string, vi: string, mode: AES_MODE) => Promise<string>
   aesEncryptSync: (text: string, key: string, vi: string, mode: AES_MODE) => string
   aesDecryptSync: (text: string, key: string, vi: string, mode: AES_MODE) => string
+  sha1: (text: string) => Promise<string>
 }
 
 const getCryptoModule = () => {
@@ -81,9 +82,9 @@ export const aesDecryptSync = (text: string, key: string, vi: string, mode: AES_
   return getCryptoModule().aesDecryptSync(text, key, vi, mode)
 }
 
-export const hashSHA1 = async(text: any) => {
+export const hashSHA1 = async(text: string) => {
   try {
-    return await CryptoModule.sha1(text)
+    return await getCryptoModule().sha1(text)
   } catch (error) {
     console.error('生成SHA1出现问题:', error)
     throw error

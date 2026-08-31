@@ -259,7 +259,7 @@ const updateMetaInfo = async(mInfo: LX.Player.MusicInfo) => {
     title = playerState.lastLyric
     artist = `${mInfo.name}${mInfo.singer ? ` - ${mInfo.singer}` : ''}`
   }
-  await TrackPlayer.updateNowPlayingMetadata({
+  await updateNowPlayingMetadata({
     title,
     artist,
     album: mInfo.album ?? undefined,
