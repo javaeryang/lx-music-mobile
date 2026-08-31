@@ -45,6 +45,8 @@
   "disagree": "我就不",
   "disagree_tip": "那算了...🙄",
   "dislike": "不喜歡",
+  "download": "下載",
+  "download_failed": "下載失敗",
   "duplicate_list_tip": "你之前已收藏過清單「{name}」，是否需要更新裡面的歌曲？",
   "edit_metadata": "編輯標籤",
   "exit_app_tip": "確定要退出應用嗎？",

@@ -77,6 +77,7 @@ module.exports = {
   },
   ignorePatterns: [
     'node_modules',
+    'doc', // 第三方音源脚本等文档资源，不参与 lint
     '*.min.js',
     'test.js',
     '*Test.ts',

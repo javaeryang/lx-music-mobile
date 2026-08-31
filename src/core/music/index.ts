@@ -17,6 +17,12 @@ import {
   getPicUrl as getLocalPicUrl,
   getLyricInfo as getLocalLyricInfo,
 } from './local'
+import { getOfflineAudioPath, getOfflineLyricInfo } from '@/core/offline'
+
+/** 取歌曲在离线索引中的 key */
+const getOfflineId = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem) => {
+  return 'progress' in musicInfo ? musicInfo.metadata.musicInfo.id : musicInfo.id
+}
 
 
 export const getMusicUrl = async({
@@ -32,6 +38,11 @@ export const getMusicUrl = async({
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
   allowToggleSource?: boolean
 }): Promise<string> => {
+  if (!isRefresh) {
+    // 已下载的歌曲直接播本地文件
+    const path = await getOfflineAudioPath(getOfflineId(musicInfo))
+    if (path) return path
+  }
   if ('progress' in musicInfo) {
     return getDownloadMusicUrl({ musicInfo, isRefresh, onToggleSource, allowToggleSource })
   } else if (musicInfo.source == 'local') {
@@ -70,6 +81,11 @@ export const getLyricInfo = async({
   isRefresh?: boolean
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
 }): Promise<LX.Player.LyricInfo> => {
+  if (!isRefresh) {
+    // 已下载的歌曲优先读本地歌词文件
+    const lyricInfo = await getOfflineLyricInfo(getOfflineId(musicInfo))
+    if (lyricInfo) return lyricInfo
+  }
   if ('progress' in musicInfo) {
     return getDownloadLyricInfo({ musicInfo, isRefresh, onToggleSource })
   } else if (musicInfo.source == 'local') {

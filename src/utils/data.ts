@@ -26,6 +26,7 @@ const syncHostPrefix = storageDataPrefix.syncHost
 const syncHostHistoryPrefix = storageDataPrefix.syncHostHistory
 const listPrefix = storageDataPrefix.list
 const dislikeListPrefix = storageDataPrefix.dislikeList
+const offlineListKey = storageDataPrefix.offlineList
 const userApiPrefix = storageDataPrefix.userApi
 const openStoragePathPrefix = storageDataPrefix.openStoragePath
 const selectedManagedFolderPrefix = storageDataPrefix.selectedManagedFolder
@@ -399,6 +400,20 @@ export const getDislikeListRules = async() => {
  */
 export const saveDislikeListRules = async(rules: string) => {
   await saveData(dislikeListPrefix, rules)
+}
+
+/**
+ * 获取已下载歌曲索引
+ */
+export const getOfflineList = async() => {
+  return await getData<LX.Offline.ListInfo>(offlineListKey) ?? {}
+}
+/**
+ * 保存已下载歌曲索引
+ * @param listInfo 索引信息
+ */
+export const saveOfflineList = async(listInfo: LX.Offline.ListInfo) => {
+  await saveData(offlineListKey, listInfo)
 }
 
 // export const clearMusicUrlAndLyric = async() => {
