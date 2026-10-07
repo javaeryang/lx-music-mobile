@@ -1,4 +1,6 @@
-import { playNext } from '@/core/player/player'
+import { LIST_IDS } from '@/config/constant'
+import { event as offlineEvent } from '@/store/offline'
+import { playNext, resetRandomNextMusicInfo } from '@/core/player/player'
 import { updatePlayIndex } from '@/core/player/playInfo'
 import { throttleBackgroundTimer } from '@/utils/tools'
 import playerState from '@/store/player/state'
@@ -36,6 +38,12 @@ export default () => {
   const handleDownloadListChange = () => {
     handleListChange(['download'])
   }
+
+  offlineEvent.on('offline_changed', () => {
+    if (playerState.playInfo.playerListId != LIST_IDS.DOWNLOAD && playerState.playMusicInfo.listId != LIST_IDS.DOWNLOAD) return
+    resetRandomNextMusicInfo()
+    updatePlayIndex()
+  })
 
   global.app_event.on('myListMusicUpdate', handleListChange)
   global.app_event.on('downloadListUpdate', handleDownloadListChange)

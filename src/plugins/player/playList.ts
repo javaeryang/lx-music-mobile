@@ -1,6 +1,7 @@
 import TrackPlayer, { State } from 'react-native-track-player'
 import BackgroundTimer from 'react-native-background-timer'
 import { Platform } from 'react-native'
+import { LIST_IDS } from '@/config/constant'
 import { defaultUrl } from '@/config'
 import { setMaxplayTime } from '@/core/player/progress'
 import { formatPlayTime2 } from '@/utils/common'
@@ -48,7 +49,7 @@ const getCurrentFullLyric = (targetId: string | null) => {
 const buildTracks = (musicInfo: LX.Player.PlayMusic, url?: LX.Player.Track['url'], duration?: LX.Player.Track['duration']): LX.Player.Track[] => {
   const mInfo = formatMusicInfo(musicInfo)
   const track = [] as LX.Player.Track[]
-  const isShowNotificationImage = settingState.setting['player.isShowNotificationImage']
+  const isShowNotificationImage = playerState.playMusicInfo.listId != LIST_IDS.DOWNLOAD && settingState.setting['player.isShowNotificationImage']
   const album = mInfo.album || undefined
   const artwork = isShowNotificationImage && mInfo.pic && httpRxp.test(mInfo.pic) ? mInfo.pic : undefined
   const lyric = getCurrentFullLyric(mInfo.id)
@@ -234,7 +235,6 @@ export const playMusic = (musicInfo: LX.Player.PlayMusic, url: string, time: num
 // let duration = 0
 let prevArtwork: string | undefined
 const updateMetaInfo = async(mInfo: LX.Player.MusicInfo) => {
-  const isShowNotificationImage = settingState.setting['player.isShowNotificationImage']
   // const mInfo = formatMusicInfo(musicInfo)
   // console.log('+++++updateMusicPic+++++', track.artwork, track.duration)
 
@@ -248,8 +248,10 @@ const updateMetaInfo = async(mInfo: LX.Player.MusicInfo) => {
   // }
   // console.log('+++++updateMetaInfo+++++', mInfo.name)
   state.isPlaying = await TrackPlayer.getState() == State.Playing
+  const isShowNotificationImage = playerState.playMusicInfo.listId != LIST_IDS.DOWNLOAD && settingState.setting['player.isShowNotificationImage']
+  if (playerState.playMusicInfo.listId == LIST_IDS.DOWNLOAD) prevArtwork = undefined
   let artwork = isShowNotificationImage ? mInfo.pic ?? prevArtwork : undefined
-  if (mInfo.pic) prevArtwork = mInfo.pic
+  if (isShowNotificationImage && mInfo.pic) prevArtwork = mInfo.pic
   let title: string
   let artist: string
   if (playerState.lastLyric == null) {

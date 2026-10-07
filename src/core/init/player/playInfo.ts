@@ -1,4 +1,6 @@
 import { getPlayInfo } from '@/utils/data'
+import { LIST_IDS } from '@/config/constant'
+import { getList } from '@/core/player/playInfo'
 import { getListMusics } from '@/core/list'
 import { playList, play } from '@/core/player/player'
 
@@ -8,7 +10,7 @@ export default async(setting: LX.AppSetting) => {
   global.lx.restorePlayInfo = null
   if (!info?.listId || info.index < 0) return
 
-  const list = await getListMusics(info.listId)
+  const list = info.listId == LIST_IDS.DOWNLOAD ? getList(info.listId) : await getListMusics(info.listId)
   if (!list[info.index]) return
   global.lx.restorePlayInfo = info
 

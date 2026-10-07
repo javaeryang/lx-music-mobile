@@ -41,7 +41,7 @@ export const getPlayIndex = (listId: string | null, musicInfo: LX.Download.ListI
   playerPlayIndex: number
 } => {
   const { playInfo } = playerState
-  const playerList = getListMusicSync(playInfo.playerListId)
+  const playerList = getList(playInfo.playerListId)
 
   // if (listIndex < 0) throw new Error('music info not found')
   // playInfo.playIndex = listIndex
@@ -52,7 +52,7 @@ export const getPlayIndex = (listId: string | null, musicInfo: LX.Download.ListI
     playerPlayIndex = Math.min(playInfo.playerPlayIndex, playerList.length - 1)
   }
 
-  const list = getListMusicSync(listId)
+  const list = getList(listId)
   if (list.length && musicInfo) {
     const currentId = musicInfo.id
     playIndex = list.findIndex(m => m.id == currentId)
@@ -90,7 +90,7 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   if (musicInfo) {
     setMusicInfo('progress' in musicInfo ? {
       id: musicInfo.id,
-      pic: musicInfo.metadata.musicInfo.meta.picUrl,
+      pic: playerState.playMusicInfo.listId == LIST_IDS.DOWNLOAD ? null : musicInfo.metadata.musicInfo.meta.picUrl,
       name: musicInfo.metadata.musicInfo.name,
       singer: musicInfo.metadata.musicInfo.singer,
       album: musicInfo.metadata.musicInfo.meta.albumName ?? '',
@@ -101,7 +101,7 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
       rawlrc: null,
     } : {
       id: musicInfo.id,
-      pic: musicInfo.meta.picUrl,
+      pic: playerState.playMusicInfo.listId == LIST_IDS.DOWNLOAD ? null : musicInfo.meta.picUrl,
       name: musicInfo.name,
       singer: musicInfo.singer,
       album: musicInfo.meta.albumName ?? '',

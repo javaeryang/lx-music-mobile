@@ -1,3 +1,4 @@
+import { LIST_IDS } from '@/config/constant'
 import { getMusicUrl } from '@/core/music'
 import { getNextPlayMusicInfo, resetRandomNextMusicInfo } from '@/core/player/player'
 import { checkUrl } from '@/utils/request'
@@ -16,18 +17,23 @@ const resetPreloadInfo = () => {
   preloadMusicInfo.isLoading = false
 }
 const preloadNextMusicUrl = async(curTime: number) => {
+  if (playerState.playMusicInfo.listId == LIST_IDS.DOWNLOAD) return
   if (preloadMusicInfo.isLoading || curTime - preloadMusicInfo.preProgress < 3) return
   preloadMusicInfo.isLoading = true
   console.log('preload next music url')
   const info = await getNextPlayMusicInfo()
   if (info) {
     preloadMusicInfo.info = info
-    const url = await getMusicUrl({ musicInfo: info.musicInfo }).catch(() => '')
-    if (url) {
+    if (info.listId == LIST_IDS.DOWNLOAD) {
+      preloadMusicInfo.isLoading = false
+      return
+    }
+    const url = await getMusicUrl({ musicInfo: info.musicInfo, listId: info.listId }).catch(() => '')
+    if (/^https?:\/\//i.test(url)) {
       console.log('preload url', url)
       const [cached, available] = await Promise.all([isCached(url), checkUrl(url).then(() => true).catch(() => false)])
       if (!cached && !available) {
-        const url = await getMusicUrl({ musicInfo: info.musicInfo, isRefresh: true }).catch(() => '')
+        const url = await getMusicUrl({ musicInfo: info.musicInfo, listId: info.listId, isRefresh: true }).catch(() => '')
         console.log('preload url refresh', url)
       }
     }

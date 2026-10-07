@@ -17,6 +17,7 @@ import {
   getPicUrl as getLocalPicUrl,
   getLyricInfo as getLocalLyricInfo,
 } from './local'
+import { LIST_IDS } from '@/config/constant'
 import { getOfflineAudioPath, getOfflineLyricInfo } from '@/core/offline'
 
 /** 取歌曲在离线索引中的 key */
@@ -28,6 +29,7 @@ const getOfflineId = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem) => {
 export const getMusicUrl = async({
   musicInfo,
   quality,
+  listId,
   isRefresh = false,
   onToggleSource,
   allowToggleSource,
@@ -35,13 +37,16 @@ export const getMusicUrl = async({
   musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   isRefresh?: boolean
   quality?: LX.Quality
+  listId?: string | null
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
   allowToggleSource?: boolean
 }): Promise<string> => {
-  if (!isRefresh) {
-    // 已下载的歌曲直接播本地文件
+  const offlineOnly = listId == LIST_IDS.DOWNLOAD
+  if (offlineOnly || !isRefresh) {
+    // 离线列表即使刷新或文件丢失也不能回退到在线音源
     const path = await getOfflineAudioPath(getOfflineId(musicInfo))
     if (path) return path
+    if (offlineOnly) throw new Error(global.i18n.t('player__error'))
   }
   if ('progress' in musicInfo) {
     return getDownloadMusicUrl({ musicInfo, isRefresh, onToggleSource, allowToggleSource })
@@ -63,6 +68,8 @@ export const getPicPath = async({
   isRefresh?: boolean
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
 }): Promise<string> => {
+  // 离线下载未保存封面，使用默认封面，避免图片组件和系统通知请求网络。
+  if (listId == LIST_IDS.DOWNLOAD) return ''
   if ('progress' in musicInfo) {
     return getDownloadPicUrl({ musicInfo, isRefresh, listId, onToggleSource })
   } else if (musicInfo.source == 'local') {
@@ -74,17 +81,21 @@ export const getPicPath = async({
 
 export const getLyricInfo = async({
   musicInfo,
+  listId,
   isRefresh = false,
   onToggleSource,
 }: {
   musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   isRefresh?: boolean
+  listId?: string | null
   onToggleSource?: (musicInfo?: LX.Music.MusicInfoOnline) => void
 }): Promise<LX.Player.LyricInfo> => {
-  if (!isRefresh) {
+  const offlineOnly = listId == LIST_IDS.DOWNLOAD
+  if (offlineOnly || !isRefresh) {
     // 已下载的歌曲优先读本地歌词文件
     const lyricInfo = await getOfflineLyricInfo(getOfflineId(musicInfo))
     if (lyricInfo) return lyricInfo
+    if (offlineOnly) return { lyric: '', rawlrcInfo: { lyric: '' } }
   }
   if ('progress' in musicInfo) {
     return getDownloadLyricInfo({ musicInfo, isRefresh, onToggleSource })
