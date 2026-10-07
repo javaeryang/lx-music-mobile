@@ -33,10 +33,32 @@ jobs:
           fi
           xcodebuild -version
 
-      # The runner image does not ship iOS runtimes and ibtool (storyboard compile)
-      # does not trigger the lazy install: "error: iOS 18.2 Platform Not Installed"
-      - name: Download iOS platform runtime
-        run: xcodebuild -downloadPlatform iOS
+      # Initialize the selected Xcode before accessing CoreSimulator.
+      - name: Initialize Xcode
+        run: sudo xcodebuild -runFirstLaunch
+
+      # Warm CoreSimulator caches after switching Xcode to avoid exit 70:
+      # https://github.com/actions/runner-images/issues/12862
+      # Keep the runtime installation for ibtool (storyboard compilation).
+      - name: Prepare iOS platform runtime
+        timeout-minutes: 30
+        run: |
+          for attempt in 1 2 3; do
+            echo "Preparing iOS runtime (attempt ${attempt}/3)"
+            if xcrun simctl list > /dev/null && xcodebuild -downloadPlatform iOS; then
+              xcrun --sdk iphoneos --show-sdk-version
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo '::warning::iOS runtime preparation failed; retrying in 10 seconds'
+              sleep 10
+            fi
+          done
+          echo '::error::Unable to prepare iOS runtime after 3 attempts'
+          xcode-select -p
+          xcodebuild -version
+          xcrun simctl list || true
+          exit 1
 
       - name: Setup Env
         uses: ./.github/actions/setup
